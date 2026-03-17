@@ -25,6 +25,7 @@ defmodule PlausibleWeb.Plugs.AuthorizePublicAPI do
   All API requests are rate limited per API key, enforcing a given hourly request limit.
   """
 
+  use Plausible
   use Plausible.Repo
 
   import Plug.Conn
@@ -131,19 +132,26 @@ defmodule PlausibleWeb.Plugs.AuthorizePublicAPI do
   end
 
   defp verify_by_scope(conn, api_key, "sites:" <> scope_suffix = scope) do
-    feature =
-      case scope_suffix do
-        "read:" <> _ ->
-          Plausible.Billing.Feature.StatsAPI
+    on_ee do
+      feature =
+        case scope_suffix do
+          "read:" <> _ ->
+            Plausible.Billing.Feature.StatsAPI
 
-        "provision:" <> _ ->
-          Plausible.Billing.Feature.SitesAPI
+          "provision:" <> _ ->
+            Plausible.Billing.Feature.SitesAPI
+        end
+
+      with :ok <- check_scope(api_key, scope),
+           :ok <- maybe_verify_site_access(conn, api_key, feature),
+           :ok <- maybe_verify_team_access(conn, api_key, feature) do
+        {:ok, conn}
       end
-
-    with :ok <- check_scope(api_key, scope),
-         :ok <- maybe_verify_site_access(conn, api_key, feature),
-         :ok <- maybe_verify_team_access(conn, api_key, feature) do
-      {:ok, conn}
+    else
+      # CE: skip billing feature check, just verify scope string
+      with :ok <- check_scope(api_key, scope) do
+        {:ok, conn}
+      end
     end
   end
 

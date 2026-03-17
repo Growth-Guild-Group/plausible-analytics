@@ -400,6 +400,25 @@ defmodule PlausibleWeb.Router do
     end
   end
 
+  # Sites API — CE fork (clean-room implementation)
+  on_ce do
+    scope "/api/v1/sites", PlausibleWeb.Api do
+      pipe_through :public_api
+
+      scope assigns: %{api_scope: "sites:provision:*"} do
+        pipe_through PlausibleWeb.Plugs.AuthorizePublicAPI
+
+        get "/", SitesController, :index
+        post "/", SitesController, :create_site
+
+        scope assigns: %{api_context: :site} do
+          get "/:site_id", SitesController, :get_site
+          delete "/:site_id", SitesController, :delete_site
+        end
+      end
+    end
+  end
+
   scope "/api", PlausibleWeb do
     scope [] do
       pipe_through :external_api
