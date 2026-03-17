@@ -84,6 +84,5 @@ ENV LISTEN_IP=0.0.0.0
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 8000
 ENV DEFAULT_DATA_DIR=/var/lib/plausible
-VOLUME /var/lib/plausible
 CMD ["run"]
 
